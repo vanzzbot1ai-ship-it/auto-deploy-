@@ -46,25 +46,27 @@ app.post('/api/deploy', async (req, res) => {
             headers: { Authorization: `token ${GITHUB_TOKEN}` } 
         });
 
-                console.log(`[3/3] Memerintahkan Vercel untuk deploy ke Production...`);
+        console.log(`[3/3] Memerintahkan Vercel untuk deploy...`);
 
+        // BAGIAN YANG DIBETULIN (Payload Vercel v13)
         const vercelDeploy = await axios.post(
             'https://api.vercel.com/v13/deployments?skipAutoDetectionConfirmation=1', 
             {
                 name: repoName,
                 project: repoName,
-                // INI KUNCINYA: Pakai target production
-                target: 'production', 
                 gitSource: {
                     type: 'github',
                     repoId: repoData.id.toString(),
                     ref: 'main'
                 },
+                // INI OBAT ERROR 'missing_project_settings'
                 projectSettings: {
                     framework: null,
+                    devCommand: null,
                     installCommand: null,
                     buildCommand: null,
-                    outputDirectory: null
+                    outputDirectory: null,
+                    rootDirectory: null
                 }
             }, 
             { 
@@ -72,13 +74,33 @@ app.post('/api/deploy', async (req, res) => {
             }
         );
 
-        // Biar URL yang dikirim balik itu domain bersihnya
-        // Kita rapihin URL-nya (buang awalan https:// kalau ada)
-        const cleanUrl = repoName + '.vercel.app';
+                // ... (setelah const vercelDeploy = await axios.post ...)
 
         res.json({
-            message: "Gokil! Web berhasil dideploy ke Production.",
-            url: `https://${cleanUrl}`
+            message: "Gokil! Web berhasil dideploy.",
+            url: `https://${repoName}.vercel.app` // Langsung ambil dari nama repo yang lo input
         });
         
-            
+
+    } catch (error) {
+        // Output error yang lebih detail biar lo gampang bacanya di console
+        const errorDetail = error.response ? error.response.data : error.message;
+        console.error("Detail Error:", JSON.stringify(errorDetail, null, 2));
+        
+        res.status(500).json({ 
+            message: "Waduh gagal, cek console Termux!", 
+            error: errorDetail
+        });
+    }
+});
+
+app.listen(PORT, () => {
+    console.log(`
+    =======================================
+    🚀 Vanz-Deployer Running!
+    🌍 URL: http://localhost:${PORT}
+    🛠️  Mode: Auto-Deploy to Vercel
+    =======================================
+    `);
+});
+    
