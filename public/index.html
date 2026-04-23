@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vanz Deployer v2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            background: #020617; 
+            color: #e2e8f0; 
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-image: radial-gradient(circle at 50% -20%, #1e293b, #020617);
+        }
+        .glass {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .neon-border:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+        }
+        .gradient-text {
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 sm:p-8">
+
+    <div class="glass p-6 sm:p-10 rounded-3xl w-full max-w-xl">
+        <header class="mb-8">
+            <h1 class="text-4xl font-extrabold gradient-text">Vanz Deployer</h1>
+            <p class="text-slate-400 text-sm mt-2">Auto-push GitHub & Auto-deploy Vercel</p>
+        </header>
+
+        <div class="space-y-6">
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Nama Project (Repo)</label>
+                <input type="text" id="repoName" placeholder="misal: my-awesome-web" 
+                    class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-4 focus:outline-none neon-border transition-all">
+            </div>
+
+            <div class="p-4 border-2 border-dashed border-slate-700 rounded-xl bg-slate-900/30">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Upload File HTML</label>
+                <input type="file" id="fileInput" accept=".html" 
+                    class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-sky-500/10 file:text-sky-400 hover:file:bg-sky-500/20 cursor-pointer">
+            </div>
+
+            <div class="relative">
+                <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div class="w-full border-t border-slate-800"></div>
+                </div>
+                <div class="relative flex justify-center text-xs uppercase">
+                    <span class="bg-[#0f172a] px-2 text-slate-500">Atau Tempel Kode</span>
+                </div>
+            </div>
+
+            <div>
+                <textarea id="htmlContent" rows="6" placeholder="<html> ... </html>"
+                    class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-4 font-mono text-xs focus:outline-none neon-border transition-all"></textarea>
+            </div>
+
+            <button onclick="deployNow()" id="btnDeploy"
+                class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-sky-900/20 transition-all transform active:scale-95 flex items-center justify-center gap-2">
+                <span id="btnText">Deploy ke Cloud</span>
+            </button>
+        </div>
+
+        <div id="statusBox" class="mt-8 hidden p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 animate-pulse">
+            <div class="flex items-start gap-3">
+                <div class="flex-1">
+                    <p id="statusMsg" class="text-sm text-emerald-400 font-semibold"></p>
+                    <a id="linkResult" href="#" target="_blank" class="text-xs text-white underline mt-1 block truncate"></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function deployNow() {
+            const repoName = document.getElementById('repoName').value.trim();
+            const fileInput = document.getElementById('fileInput');
+            let htmlContent = document.getElementById('htmlContent').value;
+            const btn = document.getElementById('btnDeploy');
+            const btnText = document.getElementById('btnText');
+            const statusBox = document.getElementById('statusBox');
+            const statusMsg = document.getElementById('statusMsg');
+            const linkResult = document.getElementById('linkResult');
+
+            if (!repoName) return alert("Kasih nama reponya dulu, Bro!");
+
+            // Logika baca file kalau ada yang di-upload
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                htmlContent = await file.text();
+            }
+
+            if (!htmlContent) return alert("Isi kodenya atau upload file HTML dulu!");
+
+            // Loading state
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            btnText.innerText = "🚀 Sedang Mengirim...";
+            statusBox.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/deploy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ repoName, htmlContent })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusBox.classList.remove('hidden', 'bg-red-500/10', 'border-red-500/20');
+                    statusBox.classList.add('bg-emerald-500/10', 'border-emerald-500/20');
+                    statusMsg.innerText = "✅ " + data.message;
+                    linkResult.href = data.url;
+                    linkResult.innerText = data.url;
+                } else {
+                    throw new Error(data.message || "Gagal total, Bro!");
+                }
+            } catch (err) {
+                statusBox.classList.remove('hidden', 'bg-emerald-500/10', 'border-emerald-500/20');
+                statusBox.classList.add('bg-red-500/10', 'border-red-500/20');
+                statusMsg.innerText = "❌ Error: " + err.message;
+                linkResult.innerText = "Cek log server di Termux kamu.";
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btnText.innerText = "Deploy ke Cloud";
+            }
+        }
+    </script>
+</body>
+</html>
