@@ -11,7 +11,7 @@ app.use(express.static('public'));
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_USER = process.env.GITHUB_USER;
-const VERCEL_TOKEN = process.env.VERCEL_TOKEN;
+const VC_TOKEN = process.env.VC_TOKEN;
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
 app.post('/api/deploy', async (req, res) => {
     const { repoName, htmlContent } = req.body;
 
-    if (!GITHUB_TOKEN || !VERCEL_TOKEN) {
+    if (!GITHUB_TOKEN || !VC_TOKEN) {
         return res.status(500).json({ message: "Token API belum disetting di .env, Bro!" });
     }
 
@@ -70,7 +70,7 @@ app.post('/api/deploy', async (req, res) => {
                 }
             }, 
             { 
-                headers: { Authorization: `Bearer ${VERCEL_TOKEN}` } 
+                headers: { Authorization: `Bearer ${VC_TOKEN}` } 
             }
         );
 
